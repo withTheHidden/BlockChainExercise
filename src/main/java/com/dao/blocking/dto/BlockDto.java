@@ -13,8 +13,7 @@ public class BlockDto {
     private String previousHash;
     private String timestamp;
 
-    public BlockDto(String message, long index, List<TransactionDto> transactionDto, String proof, String previousHash,String timestamp) {
-        this.message = message;
+    public BlockDto(long index, List<TransactionDto> transactionDto, String proof, String previousHash,String timestamp) {
         this.index = index;
         this.transactionDto = transactionDto;
         this.proof = proof;

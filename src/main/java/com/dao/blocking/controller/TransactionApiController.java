@@ -2,8 +2,15 @@ package com.dao.blocking.controller;
 
 import com.dao.blocking.dto.BlockDto;
 import com.dao.blocking.dto.ChainInfoDto;
+import com.dao.blocking.dto.Register;
 import com.dao.blocking.dto.TransactionDto;
 import com.dao.blocking.pojo.BlockChain;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,15 +24,19 @@ import java.util.Set;
 @RestController
 @RequestMapping("java")
 public class TransactionApiController {
+    @Autowired
+    private ServletContext servletContext;
+
     @GetMapping("mine")
-    public BlockDto mine(ServletContext servletContext){
+    public BlockDto mine(){
         BlockChain blockChain = BlockChain.Inner.getInstance();
         BlockDto lastBlock = blockChain.getLastBlock();
+        String lastProof = lastBlock.getProof();
+        Long proof = blockChain.proofOfWork(Long.parseLong(lastProof));
 
         String uuid = (String) servletContext.getAttribute("uuid");
         blockChain.newTransactions("0", uuid, 1L);
-
-        return blockChain.newBlock(lastBlock, null);
+        return blockChain.newBlock(proof, null);
 
     }
 
@@ -44,13 +55,14 @@ public class TransactionApiController {
     }
 
     @PostMapping("/nodes/register")
-    public Set<String> nodeRegister(@RequestBody List<String> nodes){
+    public Set<String> nodeRegister(@RequestBody Register register){
+        List<String> nodes = register.getNodes();
         if (CollectionUtils.isEmpty(nodes)){
             throw new RuntimeException("valid list");
         }
         BlockChain blockChain = BlockChain.Inner.getInstance();
-        for (String node : nodes) {
-            blockChain.registerNode(node);
+        for (Object node : nodes) {
+            blockChain.registerNode((String) node);
         }
         return blockChain.getNodes();
     }

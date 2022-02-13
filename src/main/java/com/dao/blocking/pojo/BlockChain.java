@@ -46,7 +46,7 @@ public class BlockChain {
         nodes = new HashSet<>();
 
         //初始
-        newBlock(new BlockDto(String.valueOf(100), String.valueOf(System.currentTimeMillis())), "0");
+        newBlock(100L, "0");
     }
 
     public BlockDto getLastBlock() {
@@ -80,11 +80,17 @@ public class BlockChain {
     }
 
 
-    public BlockDto newBlock(BlockDto blockDto, String previousHash) {
+    public BlockDto newBlock(Long proof, String previousHash) {
         // 如果没有传递上一个区块的hash就计算出区块链中最后一个区块的hash
         previousHash = previousHash != null ? previousHash : hash(getChain().get(getChain().size() - 1));
-        blockDto.setPreviousHash(previousHash);
-        blockDto.setTransactionDto(getCurrentTransactions());
+        BlockDto blockDto = new BlockDto(
+                getChain().size()+1,
+                getCurrentTransactions(),
+                String.valueOf(proof),
+                previousHash,
+                String.valueOf(System.currentTimeMillis())
+        );
+
         // 重置当前的交易信息列表
         setCurrentTransactions(new ArrayList<TransactionDto>());
         getChain().add(blockDto);

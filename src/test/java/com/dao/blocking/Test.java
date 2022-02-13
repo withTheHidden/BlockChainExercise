@@ -17,25 +17,27 @@ public class Test {
     public static void main(String[] args) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         BlockChain blockChain = BlockChain.Inner.getInstance();
-        BlockDto blockDto = blockChain.newBlock(new BlockDto(String.valueOf(300), String.valueOf(System.currentTimeMillis())), null);
+        blockChain.newTransactions("one","two",3333L);
+        BlockDto blockDto = blockChain.newBlock(300L, null);
         System.out.println(gson.toJson(blockDto));
 
-        blockChain.newTransactions("james","guo",9999L);
-        BlockDto blockWithOneTransaction = blockChain.newBlock(new BlockDto(String.valueOf(500), String.valueOf(System.currentTimeMillis())), null);
-        System.out.println("two  :"+ gson.toJson(blockWithOneTransaction));
-
+//        blockChain.newTransactions("james","guo",9999L);
+//        BlockDto blockWithOneTransaction = blockChain.newBlock(new BlockDto(String.valueOf(500), String.valueOf(System.currentTimeMillis())), null);
+//        System.out.println("two  :"+ gson.toJson(blockWithOneTransaction));
+//
+//        System.out.println("-----------------------------------------");
 //        blockChain.newTransactions("xss1","guo",8888L);
 //        blockChain.newTransactions("asdasd2","guo",21233L);
 //        blockChain.newTransactions("2sad3","fsxq",2313L);
 //        BlockDto blockWithSomeTransaction = blockChain.newBlock(new BlockDto(String.valueOf(600), String.valueOf(System.currentTimeMillis())), null);
 //        System.out.println("three  :"+ gson.toJson(blockWithSomeTransaction));
-//
-//        Map<String, Object> chain = new HashMap<>();
-//        chain.put("chain",blockChain.getChain());
-//        chain.put("length",blockChain.getChain().size());
-//
-//        System.out.println("chain : "+ gson.toJson(chain));
-//
+
+        Map<String, Object> chain = new HashMap<>();
+        chain.put("chain",blockChain.getChain());
+        chain.put("length",blockChain.getChain().size());
+        System.out.println("----------------------------------------------");
+        System.out.println("chain : "+ gson.toJson(chain));
+
 //        //普通单例验证
 //        System.out.println("-----------_____-------------________------------_________-");
 //        BlockChain instance = BlockChain.Inner.getInstance();
