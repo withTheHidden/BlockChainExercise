@@ -1,24 +1,40 @@
 package com.dao.blocking.dto;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
 
 public class ChainInfoDto {
-    private Map<String, Object> chain;
 
-    public ChainInfoDto(List chain, int length) {
-        this.chain = new HashMap<String, Object>() {{
-            put("chain", chain);
-            put("length", length);
-        }};
+    private List<BlockDto> chain;
+    private Long length;
+    private String message;
+
+    public ChainInfoDto(List<BlockDto> chain, long length) {
+        this.chain = chain;
+        this.length = length;
     }
 
-    public Map<String, Object> getChain() {
+    public List<BlockDto> getChain() {
         return chain;
     }
 
-    public void setChain(Map<String, Object> chain) {
+    public void setChain(List<BlockDto> chain) {
         this.chain = chain;
+    }
+
+    public Long getLength() {
+        return length;
+    }
+
+    public void setLength(Long length) {
+        this.length = length;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

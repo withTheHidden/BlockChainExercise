@@ -4,21 +4,23 @@ import com.dao.blocking.dto.BlockDto;
 import com.dao.blocking.dto.ChainInfoDto;
 import com.dao.blocking.dto.TransactionDto;
 import com.dao.blocking.pojo.BlockChain;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.ServletContext;
-import java.util.Map;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author jamesguo
  */
 @RestController
-@RequestMapping("/")
+@RequestMapping("java")
 public class TransactionApiController {
     @GetMapping("mine")
     public BlockDto mine(ServletContext servletContext){
         BlockChain blockChain = BlockChain.Inner.getInstance();
-        BlockDto lastBlock = blockChain.lastBlock();
+        BlockDto lastBlock = blockChain.getLastBlock();
 
         String uuid = (String) servletContext.getAttribute("uuid");
         blockChain.newTransactions("0", uuid, 1L);
@@ -40,4 +42,34 @@ public class TransactionApiController {
         return new ChainInfoDto(blockChain.getChain(),blockChain.getChain().size());
 
     }
+
+    @PostMapping("/nodes/register")
+    public Set<String> nodeRegister(@RequestBody List<String> nodes){
+        if (CollectionUtils.isEmpty(nodes)){
+            throw new RuntimeException("valid list");
+        }
+        BlockChain blockChain = BlockChain.Inner.getInstance();
+        for (String node : nodes) {
+            blockChain.registerNode(node);
+        }
+        return blockChain.getNodes();
+    }
+
+    @GetMapping("/nodes/resolve")
+    public ChainInfoDto resolve(){
+        BlockChain blockChain = BlockChain.Inner.getInstance();
+
+        boolean replacedChain = blockChain.resolveConflicts();
+        List<BlockDto> chain = blockChain.getChain();
+        String msg = "replaced";
+        if (!replacedChain){
+            msg = "authoritative";
+        }
+        ChainInfoDto chainInfoDto = new ChainInfoDto(chain,chain.size());
+        chainInfoDto.setMessage(msg);
+
+        return chainInfoDto;
+    }
+
+
 }
