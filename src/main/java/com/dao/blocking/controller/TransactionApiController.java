@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ import java.util.Set;
  */
 @RestController
 @RequestMapping("java")
+@Slf4j
 public class TransactionApiController {
     @Autowired
     private ServletContext servletContext;
@@ -36,8 +38,8 @@ public class TransactionApiController {
 
         String uuid = (String) servletContext.getAttribute("uuid");
         blockChain.newTransactions("0", uuid, 1L);
+        log.warn("uuid {}",uuid);
         return blockChain.newBlock(proof, null);
-
     }
 
     @PostMapping("transactions/new")
