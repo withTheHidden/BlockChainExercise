@@ -1,8 +1,10 @@
 package com.dao.blocking.utils;
 
+import org.springframework.stereotype.Component;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
+@Component
 public class Encrypt {
 
     /**
@@ -37,8 +39,8 @@ public class Encrypt {
 
     /**
      * 字符串 SHA 加密
-     *
-     * @param strText
+     * @param strText 需要加密的字符串
+     * @param strType 加密的类型
      * @return
      */
     private String SHA(final String strText, final String strType) {

@@ -7,58 +7,70 @@ import com.dao.blocking.utils.EasyPOW;
 import com.dao.blocking.utils.Encrypt;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import lombok.Cleanup;
-import lombok.Data;
-import lombok.SneakyThrows;
+import lombok.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-/**
- * @author jamesguo
- */
 @Data
+@Component
 public class BlockChain {
     private List<BlockDto> chain;
+    //当前块的交易信息
     private List<TransactionDto> currentTransactions;
-    /**
-     * 分布式节点
-     */
     private Set<String> nodes;
+    private static Gson gson = new GsonBuilder().create();;
+    @Autowired
+    EasyPOW easyPOW;
 
-    private Gson gson;
-
-    private BlockChain() {
-        //防止反射创建实例
-        if (null != Inner.getInstance()) {
-            throw new RuntimeException("nullllllllllllllll");
-        }
-        this.chain = new ArrayList<>();
-        this.currentTransactions = new ArrayList<TransactionDto>();
-        gson = new GsonBuilder().create();
+    @PostConstruct
+    private void init() {
+        chain = new ArrayList<>();
+        currentTransactions = new ArrayList<TransactionDto>();
         nodes = new HashSet<>();
-
-        //初始
-        newBlock(100L, "0");
-    }
-
-    public BlockDto getLastBlock() {
-        return getChain().get(getChain().size() - 1);
+        //初始块定义
+        Block block = new Block(
+                0,
+                //这里调用currentTransactions的话,在初始化后还得重置信息表
+                new ArrayList<TransactionDto>(),
+                String.valueOf(System.currentTimeMillis())
+        );
+        String nodeHash = hash(block);
+        chain.add(new BlockDto(block,String.valueOf(100), nodeHash,"0"));
+        // 重置当前的块的交易信息列表
+        //  setCurrentTransactions(new ArrayList<TransactionDto>());
     }
 
     /**
-     * 防止反序列化破坏单例,但因为没有实现 序列化接口因此可以反序列化
+     * 获取最后一个节点
+     * @return BlockDto
      */
-    private Object readResolve() {
-        return Inner.getInstance();
+    public Block getLastBlock() {
+        return getChain().get(getChain().size() - 1).getBlock();
     }
+    /**
+     * 获取最后一个工作证明
+     * @return BlockDto
+     */
+    public String getLastProof() {
+        return getChain().get(getChain().size() - 1).getProof();
+    }
+
+//    /**
+//     * 防止反序列化破坏单例,但因为没有实现 序列化接口因此可以反序列化
+//     */
+//    private Object readResolve() {
+//        return BlockChain.Inner.getInstance();
+//    }
 
     //    public static BlockChain getInstance(){
 //        if (null == blockChain){
@@ -71,53 +83,56 @@ public class BlockChain {
 //        return blockChain;
 //    }
 //
-    public static class Inner {
-        private static final BlockChain BLOCK_CHAIN = new BlockChain();
 
-        public static BlockChain getInstance() {
-            return BLOCK_CHAIN;
-        }
-    }
-
-
-    public BlockDto newBlock(Long proof, String previousHash) {
+    /**
+     * 计算新的区块
+     * @param proof 工作量
+     * @param previousHash 前一个区块的hash,创世区块为 0
+     * @return
+     */
+    public Block newBlock(Long proof, String previousHash) {
         // 如果没有传递上一个区块的hash就计算出区块链中最后一个区块的hash
-        previousHash = previousHash != null ? previousHash : hash(getChain().get(getChain().size() - 1));
-        BlockDto blockDto = new BlockDto(
-                getChain().size()+1,
+        Block prBlock = getChain().get(getChain().size() - 1).getBlock();
+        previousHash = previousHash != null ? previousHash : hash(prBlock);
+
+        //新生成区块
+        Block block = new Block(
+                getChain().size(),
                 getCurrentTransactions(),
-                String.valueOf(proof),
-                previousHash,
                 String.valueOf(System.currentTimeMillis())
         );
 
-        // 重置当前的交易信息列表
+        // 重置当前的块的交易信息列表
         setCurrentTransactions(new ArrayList<TransactionDto>());
-        getChain().add(blockDto);
-        return blockDto;
+        getChain().add(new BlockDto(block,String.valueOf(proof),previousHash,hash(block)));
+        return block;
     }
 
-    private String hash(BlockDto blockDto) {
-        return new Encrypt().getSHA256(gson.toJson(blockDto));
+    private String hash(Block block) {
+        return new Encrypt().getSHA256(gson.toJson(block));
     }
 
     /**
-     * 返回索引
+     * 添加交易信息
+     * @param sender 发送者
+     * @param recipient 接收者
+     * @param amount 量
+     * @return 新增的交易信息的索引
      */
     public long newTransactions(String sender, String recipient, Long amount) {
         TransactionDto transaction = new TransactionDto(sender, recipient, amount);
+        //分布式锁?
         getCurrentTransactions().add(transaction);
         return getLastBlock().getIndex() + 1;
     }
 
     /**
-     * 工作量认证
-     *
+     * 计算下一份区块所耗费的工作量
      * @param lastProof
      * @return
      */
-    public long proofOfWork(long lastProof) {
-        return EasyPOW.proofOfWork(lastProof);
+    public Long proofOfWork(long lastProof) {
+        return easyPOW.proofOfWork(lastProof);
     }
 
     @SneakyThrows
@@ -134,16 +149,19 @@ public class BlockChain {
      * @return
      */
     public boolean validChain(List<BlockDto> chain) {
-        BlockDto preBlock = chain.get(0);
+        BlockDto preBlockDto = chain.get(0);
         int currentIndex = 1;
         while (currentIndex < chain.size()) {
-            BlockDto block = chain.get(currentIndex);
-            //log
-            if (!block.getPreviousHash().equals(hash(preBlock))) {
+            BlockDto blockDto = chain.get(currentIndex);
+            //验证hash
+            if (!blockDto.getPreviousHash().equals(hash(preBlockDto.getBlock()))) {
                 return false;
             }
-
-            preBlock = block;
+            //验证工作量
+            if (!easyPOW.validProof(preBlockDto.getProof(),blockDto.getProof())){
+                return false;
+            }
+            preBlockDto = blockDto;
             currentIndex++;
         }
         return true;
@@ -164,8 +182,8 @@ public class BlockChain {
             if (connection.getResponseCode() == 200) {
                 @Cleanup
                 BufferedReader bufferedReader = new BufferedReader(
-                        new InputStreamReader(connection.getInputStream(), "utf-8"));
-                StringBuffer responseData = new StringBuffer();
+                        new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder responseData = new StringBuilder();
                 String response = null;
                 while ((response = bufferedReader.readLine()) != null) {
                     responseData.append(response);

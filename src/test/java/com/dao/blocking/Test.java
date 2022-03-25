@@ -1,14 +1,12 @@
 package com.dao.blocking;
 
-import com.dao.blocking.dto.BlockDto;
+import com.dao.blocking.pojo.Block;
 import com.dao.blocking.pojo.BlockChain;
+import com.dao.blocking.pojo.ProofAndHash;
+import com.dao.blocking.utils.EasyPOW;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import lombok.Cleanup;
 
-import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,10 +14,12 @@ public class Test {
 
     public static void main(String[] args) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        BlockChain blockChain = BlockChain.Inner.getInstance();
+        BlockChain blockChain = new BlockChain();
         blockChain.newTransactions("one","two",3333L);
-        BlockDto blockDto = blockChain.newBlock(300L, null);
-        System.out.println(gson.toJson(blockDto));
+        EasyPOW easyPOW = new EasyPOW();
+        Long proofAndHash = easyPOW.proofOfWork(100);
+        Block block = blockChain.newBlock(proofAndHash, null);
+        System.out.println(gson.toJson(block));
 
 //        blockChain.newTransactions("james","guo",9999L);
 //        BlockDto blockWithOneTransaction = blockChain.newBlock(new BlockDto(String.valueOf(500), String.valueOf(System.currentTimeMillis())), null);
