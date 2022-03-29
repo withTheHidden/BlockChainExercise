@@ -1,2 +1,3 @@
 # BlockChainExercise
-BlockChainExercise by java
+BlockChainExercise by springboot
+基于springboot的PoW一致性算法的练习项目
